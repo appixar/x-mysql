@@ -117,7 +117,8 @@ class MySchema extends Arion
         if (@$argx['--mute']) $this->mute = true;
 
         if (!@is_array($_APP['MYSQL'])) {
-            die('Ops! config/mysql.yml is missing');
+            Mason::say("Ops! config/mysql.yml is missing", false, "red");
+            exit;
         }
 
         foreach ($_APP['MYSQL'] as $mysql_key => $mysql) {
