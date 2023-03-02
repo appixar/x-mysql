@@ -1,7 +1,7 @@
 # Arion
 .tmp
-*/config/*.yml
-*/database/*.yml
+config/*.yml
+database/*.yml
 public/upload/*
 src/controllers/*
 src/jobs/*
