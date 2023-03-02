@@ -339,6 +339,11 @@ class MySchema extends Arion
             $type = explode("/", $type)[0];
             $type_real = explode("(", @$this->schema_default[$type]['Type'])[0];
 
+            // type is null
+            if (!$type) {
+                Mason::say("* Ignoring field $k: type is null.", false, "yellow");
+                continue;
+            }
             // field length
             $len = @explode(" ", $v)[0];
             $len = @explode("/", $len)[1];
