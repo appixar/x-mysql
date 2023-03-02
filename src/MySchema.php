@@ -116,6 +116,10 @@ class MySchema extends Arion
         // sub --arguments
         if (@$argx['--mute']) $this->mute = true;
 
+        if (!@is_array($_APP['MYSQL'])) {
+            die('Ops! config/mysql.yml is missing');
+        }
+
         foreach ($_APP['MYSQL'] as $mysql_key => $mysql) {
             /* PATH DEPRECATED
             if (!@$mysql['PATH']) {
