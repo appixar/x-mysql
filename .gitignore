@@ -1,18 +1,21 @@
-# Arion
-.tmp
-config/*.yml
-database/*.yml
+# Novel
+*/config/*.yml
+*/database/*.yml
+.tmp/*
 public/upload/*
+modules/*
 src/controllers/*
 src/jobs/*
 src/libs/*
-src/modules/*
+src/routes/*
 src/services/*
 !src/controllers/.gitkeep
 !src/jobs/.gitkeep
 !src/libs/.gitkeep
-!src/modules/.gitkeep
+!src/routes/.gitkeep
 !src/services/.gitkeep
+!modules/.gitkeep
+.env 
 
 # Jw
 *.scss

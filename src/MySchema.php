@@ -10,7 +10,7 @@ class MySchema extends Arion
     public $mute = false;
     // util
     private $actions = 0;
-    private $schema_default = array(
+    public $schema_default = array(
         'id' => array(
             'Type' => 'int(11)',
             'Null' => 'NO',
@@ -82,13 +82,45 @@ class MySchema extends Arion
             'Key' => '',
             'Extra' => ''
         ),
+        'cnpj' => array(
+            'Type' => 'varchar(14)',
+            'Null' => 'YES',
+            'Default' => '',
+            'Key' => '',
+            'Extra' => ''
+        ),
+        'alphanumeric' => array(
+            'Type' => 'varchar(64)',
+            'Null' => 'YES',
+            'Default' => '',
+            'Key' => '',
+            'Extra' => ''
+        ),
+        'url' => array(
+            'Type' => 'text',
+            'Null' => 'YES',
+            'Default' => '',
+            'Key' => '',
+            'Extra' => ''
+        ),
     );
-
+    // Armazena a única instância (para obter variavel atraves de metodo estatico)
+    private static $instance = null;
     public function __construct()
     {
         if (!is_writable(self::DIR_SCHEMA)) {
-            die('<pre>/database/schema is not writeable.');
+            //die('ERROR:' . realpath(self::DIR_SCHEMA) . ' is not writeable.' . PHP_EOL);
         }
+    }
+    // Retorna a única instância da classe (para obter variavel atraves de metodo estatico)
+    public static function getInstance()
+    {
+        if (self::$instance === null) self::$instance = new self();
+        return self::$instance;
+    }
+    public static function getParams()
+    {
+        return self::getInstance()->schema_default;
     }
     public function buildReverse()
     {
@@ -122,51 +154,90 @@ class MySchema extends Arion
             exit;
         }
 
-        foreach ($_APP['MYSQL'] as $mysql_key => $mysql) {
+        foreach ($_APP['MYSQL'] as $db_id => $db_conf) {
             /* PATH DEPRECATED
-            if (!@$mysql['PATH']) {
-                Mason::say("✗ MySQL '$mysql_key' don´t have a PATH.", true, 'red');
+            if (!@$db_conf['PATH']) {
+                Mason::say("✗ MySQL '$db_id' don´t have a PATH.", true, 'red');
                 goto next_db;
             }*/
-            Mason::say("► MySQL '$mysql_key' ...", true, 'cyan');
+            Mason::say("► MySQL '$db_id' ...", true, 'cyan');
 
-            //$path = __DIR__ . '/../../' . $mysql['PATH'] . '/';
-            $databasePaths = Arion::findPathsByType("database");
-
-            // MYSQL KEY HAVE AN WILDCARD?
-            $wild = false;
-            if (strpos($mysql['NAME'], '%') or strpos($mysql['HOST'], '%') or strpos($mysql['USER'], '%')) {
-                $wild = true;
+            // GET SPECIFIC PATH
+            if (@$db_conf['PATH']) {
+                if (!is_array($db_conf['PATH'])) $db_conf['PATH'] = [$db_conf['PATH']];
+                for ($i = 0; $i < count($db_conf['PATH']); $i++) {
+                    $db_conf['PATH'][$i] = realpath(__DIR__ . '/../../../' . $db_conf['PATH'][$i] . '/');
+                }
+                $databasePaths = $db_conf['PATH'];
             }
-            // WILDCARD EXISTS
-            if ($wild) {
-                // MISSING WILDCARD CONFIG
-                if (!@isset($mysql['WILD']['KEY']) or !@$mysql['WILD']['TABLE'] or !@$mysql['WILD']['FIELD'] or !@$mysql['WILD']['WHERE']) {
-                    Mason::say("✗ Missing wildcard parameters", false, 'red');
-                    goto next_db;
+            // GET ALL DB PATHS
+            else $databasePaths = Arion::findPathsByType("database");
+
+            // MYSQL KEY HAVE AN tenant KEY?
+            $multi_tenant = false;
+            if (strpos($db_conf['NAME'], '<TENANT_KEY>') or strpos($db_conf['HOST'], '<TENANT_KEY>') or strpos($db_conf['USER'], '<TENANT_KEY>')) {
+                $multi_tenant = true;
+            }
+            // MULTI TENANT
+            if ($multi_tenant) {
+                //-------------------------------------------
+                // GET TENANT KEYS FROM CONTROLLER
+                //-------------------------------------------
+                if (isset($db_conf['TENANT_KEYS']['CONTROLLER'])) {
+                    $controller = $db_conf['TENANT_KEYS']['CONTROLLER'];
+                    $tenant_keys = new $controller();
                 }
-                if (!@$_APP['MYSQL'][$mysql['WILD']['KEY']]) {
-                    Mason::say("✗ MySQL '{$mysql['WILD']['KEY']}' not found. Can't build wildcard loop.", false, 'red');
-                    goto next_db;
+                //-------------------------------------------
+                // GET TENANT KEYS FROM JSON URL
+                //-------------------------------------------
+                elseif (isset($db_conf['TENANT_KEYS']['JSON_URL'])) {
+                    $json_url = $db_conf['TENANT_KEYS']['JSON_URL'];
+                    if (@!explode('http://', $json_url)[1] and @!explode('https://', $json_url)[1]) {
+                        $json_url = $_APP['URL'] . $json_url;
+                    }
+                    $data = file_get_contents($json_url);
+                    $tenant_keys = json_decode($data);
                 }
-                // CREATE WILDCARD LOOP
-                $my_temp = new my(['id' => $mysql['WILD']['KEY']]);
-                $wild_res = $my_temp->query("SELECT {$mysql['WILD']['FIELD']} FROM {$mysql['WILD']['TABLE']} WHERE {$mysql['WILD']['WHERE']}");
-                $wild_loop = array();
+                //-------------------------------------------
+                // GET TENANT KEYS FROM DB
+                //-------------------------------------------
+                else {
+                    if (!@isset($db_conf['TENANT_KEYS']['DBKEY']) or !@$db_conf['TENANT_KEYS']['TABLE'] or !@$db_conf['TENANT_KEYS']['FIELD'] or !@$db_conf['TENANT_KEYS']['WHERE']) {
+                        Mason::say("✗ Missing wildcard parameters", false, 'red');
+                        goto next_db;
+                    }
+                    if (!@$_APP['MYSQL'][$db_conf['TENANT_KEYS']['DBKEY']]) {
+                        Mason::say("✗ MySQL '{$db_conf['TENANT_KEYS']['DBKEY']}' not found. Can't build wildcard loop.", false, 'red');
+                        goto next_db;
+                    }
+                    // CREATE WILDCARD LOOP
+                    $my_temp = new my(['db_key' => $db_conf['TENANT_KEYS']['DBKEY']]);
+                    $tenant_res = $my_temp->query("SELECT {$db_conf['TENANT_KEYS']['FIELD']} FROM {$db_conf['TENANT_KEYS']['TABLE']} WHERE {$db_conf['TENANT_KEYS']['WHERE']}");
+                    $tenant_loop = array();
+                    foreach ($tenant_res as $res) {
+                        if (@$res[$db_conf['TENANT_KEYS']['FIELD']]) {
+                            $tenant_keys[] = $res[$db_conf['TENANT_KEYS']['FIELD']];
+                        }
+                    }
+                }
+            }
+            // MOUNT ARRAY TENANT KEYS
+            if (@$tenant_keys[0]) {
+                $tenant_loop = array();
                 $x = 0;
-                for ($i = 0; $i < @count($wild_res); $i++) {
-                    $wild_value = $wild_res[$i][$mysql['WILD']['FIELD']];
-                    $wild_loop[$x] = $mysql;
-                    $wild_loop[$x]['WILDCARD_VALUE'] = $wild_value;
-                    $wild_loop[$x]['NAME'] = str_replace('%', $wild_value, $mysql['NAME']);
-                    $wild_loop[$x]['HOST'] = str_replace('%', $wild_value, $mysql['HOST']);
-                    $wild_loop[$x]['USER'] = str_replace('%', $wild_value, $mysql['USER']);
+                foreach ($tenant_keys as $key) {
+                    $tenant_loop[$x] = $db_conf;
+                    $tenant_loop[$x]['TENANT_KEY'] = $key;
+                    $tenant_loop[$x]['NAME'] = str_replace('<TENANT_KEY>', $key, $db_conf['NAME']);
+                    $tenant_loop[$x]['HOST'] = str_replace('<TENANT_KEY>', $key, $db_conf['HOST']);
+                    $tenant_loop[$x]['USER'] = str_replace('<TENANT_KEY>', $key, $db_conf['USER']);
                     $x++;
                 }
+                #prex($tenant_loop);
             }
-            // DONT EXISTS WILDCARD LOOP
+            // DONT EXISTS TENANT KEYS
             else {
-                $wild_loop[0] = $mysql;
+                $tenant_loop[0] = $db_conf;
             }
             //--------------------------------------------
             //
@@ -174,7 +245,7 @@ class MySchema extends Arion
             //
             //--------------------------------------------
             //for ($y = 0; $y < count($wild_loop); $y++) {
-            foreach ($wild_loop as $db) {
+            foreach ($tenant_loop as $db) {
 
                 // RESET DEBUG DATA
                 $this->queries = array();
@@ -183,15 +254,16 @@ class MySchema extends Arion
                 $this->actions = 0;
 
                 // CONNECT
-                $my_conf = ['id' => $mysql_key];
-                $wildcard = '';
-                if ($wild) {
-                    $wildcard = $db['WILDCARD_VALUE'];
-                    $my_conf['wildcard'] = $wildcard;
-                    Mason::say("→ Start $mysql_key/$wildcard", true, 'header');
+                $my_conf = ['db_key' => $db_id];
+                $tenant_key = '';
+                if ($multi_tenant) {
+                    $tenant_key = $db['TENANT_KEY'];
+                    $my_conf['tenant_key'] = $tenant_key;
+                    Mason::say("→ Start $db_id/$tenant_key", true, 'header');
+                    #prex($my_conf);
                 }
-
                 $my = new my($my_conf);
+                #if ($multi_tenant) prex($my_conf);
 
                 // SHOW CURRENT TABLES
                 $tables_real = array();
@@ -267,16 +339,20 @@ class MySchema extends Arion
                         }
                     } // dir /database exists
 
-                    // DELETE TABLES THAT ARE NOT IN /SCHEMA
-                    foreach ($tables_real as $k) {
-                        if (!in_array($k, $tables_new)) $this->deleteTable($k, $my);
-                    }
+                    #print_r($tables_real);
+                    #print_r($tables_new);
+                    #exit;
+                }
+
+                // DELETE TABLES THAT ARE NOT IN /SCHEMA
+                foreach ($tables_real as $k) {
+                    if (!in_array($k, $tables_new)) $this->deleteTable($k, $my);
                 }
 
                 // CONFIRM CHANGES
                 if (!empty($this->queries)) {
                     Mason::say("");
-                    Mason::say("→ {$this->actions} requested actions...");
+                    Mason::say("→ {$this->actions} requested actions for: $db_id/$tenant_key");
                     Mason::say("→ Please, verify:");
                     Mason::say("");
                     for ($z = 0; $z < count($this->queries); $z++) {
@@ -304,7 +380,7 @@ class MySchema extends Arion
                         $my->query($this->queries[$z]);
                     }
                 } // CONFIRM 
-                Mason::say("❤ Finished $mysql_key/$wildcard. Changes: {$this->actions}", true, 'header');
+                Mason::say("❤ Finished $db_id/$tenant_key. Changes: {$this->actions}", true, 'header');
                 next_wild:
             }
             next_db:
@@ -359,9 +435,11 @@ class MySchema extends Arion
                 $null = $this->schema_default[$type]['Null'];
                 $default = $this->schema_default[$type]['Default'];
             }
-            // field unique
+            // indexes(multi) & uniques
+            $index = array_search('index', explode(" ", $v));
             $uni = array_search('unique', explode(" ", $v));
             if ($uni !== false) $key = "UNI";
+            elseif ($index !== false) $key = "MUL";
             else $key = @$this->schema_default[$type]['Key'];
             $new_field[$k] = array(
                 'Field' => $k,
@@ -441,6 +519,16 @@ class MySchema extends Arion
                 //$my->query($query);
                 $this->actions++;
             }
+            // ADD INDEX (NOT UNIQUE. FBUT AST SEARCH TOO.)
+            if (@$v['Key'] === 'MUL') {
+                $query = "ALTER TABLE `$table` ADD INDEX(`$k`);";
+                $this->queries[] = $query;
+                $this->queries_mini[] = false;
+                $this->queries_color[] = 'cyan';
+                if (!$this->mute) Mason::say("→ $query", false, 'cyan');
+                //$my->query($query);
+                $this->actions++;
+            }
             // OTHER CHANGES
             $type = strtoupper(@$v['Type']);
             $null = ($v['Null'] == 'NO') ? "NOT NULL" : "NULL DEFAULT NULL";
@@ -499,6 +587,9 @@ class MySchema extends Arion
 
             // SET UNIQUE
             if (@$v['Key'] === 'UNI') $query .= ", UNIQUE (`$k`)";
+
+            // SET UNIQUE
+            if (@$v['Key'] === 'MUL') $query .= ", INDEX (`$k`)";
 
             $_comma = ', ' . PHP_EOL;
         }
