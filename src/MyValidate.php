@@ -23,6 +23,18 @@ class MyValidate
         return $data;
     }
     //-------------------------------------
+    // STR (MAX 64)
+    //-------------------------------------
+    public static function validate_float($data)
+    {
+        $comma = explode(",", $data);
+        if (@$comma[1]) {
+            $data = str_replace(".", "", $data);
+            $data = str_replace(",", ".", $data);
+        }
+        return $data;
+    }
+    //-------------------------------------
     // UCWORDS (FNAME,LNAME)
     //-------------------------------------
     public static function validate_ucwords($data)
