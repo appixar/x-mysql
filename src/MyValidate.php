@@ -23,7 +23,7 @@ class MyValidate
         return $data;
     }
     //-------------------------------------
-    // STR (MAX 64)
+    // FLOAT
     //-------------------------------------
     public static function validate_float($data)
     {
@@ -32,7 +32,12 @@ class MyValidate
             $data = str_replace(".", "", $data);
             $data = str_replace(",", ".", $data);
         }
-        return $data;
+        return floatval($data);
+    }
+    // INT
+    public static function validate_int($data)
+    {
+        return intval($data);
     }
     //-------------------------------------
     // UCWORDS (FNAME,LNAME)
