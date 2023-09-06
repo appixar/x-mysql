@@ -1,4 +1,6 @@
 # Novel
+config/*.yml
+database/*.yml
 */config/*.yml
 */database/*.yml
 .tmp/*
