@@ -50,7 +50,7 @@ class MyService
 
         // Dont select database? (create if not exists after)
         $dbName = '';
-        if (@!$conf['ignore-db']) $dbName = "dbname={$my['NAME']};";
+        if (@!$conf['ignore-database']) $dbName = "dbname={$my['NAME']};";
 
         // Connect
         try {

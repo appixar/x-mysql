@@ -8,6 +8,10 @@ class MySchema extends Arion
     public $queries_color = array();
     // sub arguments
     public $mute = false;
+    public $create_database = false; // create db if not exists
+    public $create_database_count = 0; // created database
+    public $select_database = '';
+    public $select_tenant = '';
     // util
     private $actions = 0;
     public $schema_default = array(
@@ -147,6 +151,10 @@ class MySchema extends Arion
 
         // sub --arguments
         if (@$argx['--mute']) $this->mute = true;
+        if (@$argx['--create']) $this->create_database = true;
+        if (@$argx['--name']) $this->select_database = $argx['--name'];
+        if (@$argx['--tenant']) $this->select_tenant = $argx['--tenant'];
+        //prex($argx);
 
         if (!@is_array($_APP['MYSQL'])) {
             Mason::say("Ops! config is missing.", false, "red");
@@ -155,11 +163,17 @@ class MySchema extends Arion
         }
 
         foreach ($_APP['MYSQL'] as $db_id => $db_conf) {
-            /* PATH DEPRECATED
-            if (!@$db_conf['PATH']) {
-                Mason::say("✗ MySQL '$db_id' don´t have a PATH.", true, 'red');
-                goto next_db;
-            }*/
+
+            // FILTER: TENANT
+            if ($this->select_tenant) {
+                if (!@$db_conf['TENANT_KEYS']) continue;
+            }
+            // FILTER: DATABASE NAME
+            if ($this->select_database) {
+                if ($this->select_database !== $db_conf['NAME'] and !@$db_conf['TENANT_KEYS']) {
+                    continue;
+                }
+            }
             Mason::say("► MySQL '$db_id' ...", true, 'cyan');
 
             // GET SPECIFIC PATH
@@ -240,11 +254,49 @@ class MySchema extends Arion
                 $tenant_loop[0] = $db_conf;
             }
             //--------------------------------------------
+            // FOUND TENANT FOCUS
+            //--------------------------------------------
+            // FILTER: TENANT
+            if ($this->select_tenant) {
+                $tenant_found = 0;
+                foreach ($tenant_loop as $db) {
+                    if ($db['TENANT_KEY'] === $this->select_tenant) {
+                        unset($tenant_loop);
+                        $tenant_loop[0] = $db;
+                        $tenant_found++;
+                        break;
+                    }
+                }
+                if (!$tenant_found) {
+                    Mason::say("- Searching '{$this->select_tenant}' in " . count($tenant_loop) . " tenants...", false);
+                    Mason::say("- Not Found!", false);
+                    Mason::say("");
+                    goto next_db;
+                }
+            }
+            // FILTER: DATABASE NAME
+            if ($this->select_database) {
+                $db_found = 0;
+                foreach ($tenant_loop as $db) {
+                    if ($db['NAME'] === $this->select_database) {
+                        unset($tenant_loop);
+                        $tenant_loop[0] = $db;
+                        $db_found++;
+                        break;
+                    }
+                }
+                if (!$db_found) {
+                    Mason::say("- Searching database '{$this->select_database}' in " . count($tenant_loop) . " tenants...", false);
+                    Mason::say("- Not Found!", false);
+                    Mason::say("");
+                    goto next_db;
+                }
+            }
+            //--------------------------------------------
             //
-            // WILDCARD LOOP
+            // DATABASE QUERY LOOP
             //
             //--------------------------------------------
-            //for ($y = 0; $y < count($wild_loop); $y++) {
             foreach ($tenant_loop as $db) {
 
                 // RESET DEBUG DATA
@@ -253,17 +305,34 @@ class MySchema extends Arion
                 $this->queries_color = array();
                 $this->actions = 0;
 
-                // CONNECT
+                // CONNECT CONF: DB KEY
                 $my_conf = ['db_key' => $db_id];
+                // CONNECT CONF: CREATE DB IF NOT EXISTS
+                if ($this->create_database) $my_conf['ignore-database'] = 1;
+                // CONNECT CONF: TENANT DATA
                 $tenant_key = '';
                 if ($multi_tenant) {
                     $tenant_key = $db['TENANT_KEY'];
                     $my_conf['tenant_key'] = $tenant_key;
                     Mason::say("→ Start $db_id/$tenant_key", true, 'header');
-                    #prex($my_conf);
                 }
                 $my = new my($my_conf);
-                #if ($multi_tenant) prex($my_conf);
+
+                // CREATE DB IF NOT EXISTS
+                if ($this->create_database) {
+                    //Mason::say($db['NAME']);
+                    $find_db = $my->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = :name", ['name' => $db['NAME']]);
+                    // NOT FOUND: CREATE
+                    if (@!$find_db[0]) {
+                        //prex($db);
+                        $this->createDatabase($db['NAME'], $my);
+                        goto execute;
+                    }
+                    // FOUND: USE
+                    else {
+                        $my->query("USE {$db['NAME']}");
+                    }
+                }
 
                 // SHOW CURRENT TABLES
                 $tables_real = array();
@@ -280,8 +349,8 @@ class MySchema extends Arion
                             $fp = "$path/$fn";
                             if (is_file($fp)) {
 
-                                Mason::say("");
-                                Mason::say("⍐ Processing: " . realpath($fp), false, 'magenta');
+                                if (!$this->mute) Mason::say("");
+                                if (!$this->mute) Mason::say("⍐ Processing: " . realpath($fp), false, 'magenta');
 
                                 // CHECK YML FILE INTEGRITY
                                 //if (!$this->checkFileIntegrity($fp)) goto nextFile;
@@ -291,7 +360,7 @@ class MySchema extends Arion
 
                                 // MULTIPLE TABLES ON SINGLE FILE?
                                 if (!is_array($data)) {
-                                    Mason::say("* Invalid file format. Ignored.", false, 'yellow');
+                                    if (!$this->mute) Mason::say("* Invalid file format. Ignored.", false, 'yellow');
                                     goto nextFile;
                                 }
 
@@ -307,7 +376,7 @@ class MySchema extends Arion
 
                                     // reforce bugfix (old yml format)
                                     if (@$table_cols[0]) {
-                                        Mason::say("* Invalid file format. Ignored.", false, 'yellow');
+                                        if (!$this->mute) Mason::say("* Invalid file format. Ignored.", false, 'yellow');
                                         goto nextFile;
                                     }
 
@@ -350,6 +419,7 @@ class MySchema extends Arion
                 }
 
                 // CONFIRM CHANGES
+                execute:
                 if (!empty($this->queries)) {
                     Mason::say("");
                     Mason::say("→ {$this->actions} requested actions for: $db_id/$tenant_key");
@@ -371,7 +441,7 @@ class MySchema extends Arion
                     fclose($handle);
                     if (trim($line) == 0) {
                         echo "Aborting!" . PHP_EOL;
-                        goto next_wild;
+                        goto next_tenant;
                     }
                     //----------------------------------------------
                     // RUN QUERIES!
@@ -381,9 +451,14 @@ class MySchema extends Arion
                     }
                 } // CONFIRM 
                 Mason::say("❤ Finished $db_id/$tenant_key. Changes: {$this->actions}", true, 'header');
-                next_wild:
+                next_tenant:
             }
             next_db:
+        }
+        if ($this->create_database_count > 0) {
+            Mason::say("Possible new databases: {$this->create_database_count}. Reloading...", true, 'cyan');
+            $this->create_database_count = 0;
+            $this->up(['--mute' => true]);
         }
     }
     /*public function populate()
@@ -616,5 +691,18 @@ class MySchema extends Arion
         $this->queries_mini[] = false;
         $this->queries_color[] = 'yellow';
         $this->actions++;
+    }
+    //-------------------------------------------------------
+    // CREATE DB : RUN QUERY
+    //-------------------------------------------------------
+    private function createDatabase($name, $my)
+    {
+        $query = "CREATE DATABASE `$name` CHARACTER SET utf8 COLLATE utf8_general_ci";
+        $this->queries[] = $query;
+        $this->queries_mini[] = "CREATE DATABASE `$name`";
+        $this->queries_color[] = 'green';
+        $this->actions++;
+        $this->create_database_count++;
+        if (!$this->mute) Mason::say("→ $query", false, 'green');
     }
 }
