@@ -70,15 +70,13 @@ class MyService
 
         if ($variables) {
             // Map used keys (bugfix)
-            $keys_used = array();
             $keys_find = explode(":", $query);
-            foreach ($keys_find as $k => $v) {
-                $v = explode(" ", $v)[0];
-                $keys_used[$v] = 1;
-            }
-            // Bind only used keys (bugfix)
-            foreach ($variables as $k => $v) {
-                if (@$keys_used[$k]) $stmt->bindValue(":$k", $v);
+            unset($keys_find[0]);
+            array_values($keys_find);
+            foreach ($keys_find as $key) {
+                $key = explode(" ", $key)[0];
+                if (@$variables[$key]) $stmt->bindValue(":$key", $variables[$key]);
+                else Arion::refreshError('Mysql error', "Bind key not found ':$key'");
             }
         }
         if (!$stmt->execute()) {
@@ -208,8 +206,13 @@ class MyService
         }
         return $fields;
     }
+    // SANITIZE INPUT FIELDS (= VALIDATE)
+    public function sanitize($receivedData, $requiredFields = false)
+    {
+        return self::validate($receivedData, $requiredFields);
+    }
     // VALIDATE INPUT FIELDS
-    public static function validate($receivedData, $requiredFields)
+    public static function validate($receivedData, $requiredFields = false)
     {
         global $_APP;
 
