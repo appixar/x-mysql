@@ -206,13 +206,8 @@ class MyService
         }
         return $fields;
     }
-    // SANITIZE INPUT FIELDS (= VALIDATE)
-    public function sanitize($receivedData, $requiredFields = false)
-    {
-        return self::validate($receivedData, $requiredFields);
-    }
     // VALIDATE INPUT FIELDS
-    public static function validate($receivedData, $requiredFields = false)
+    public static function sanitize($receivedData, $requiredFields = false)
     {
         global $_APP;
 
