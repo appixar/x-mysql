@@ -1,6 +1,6 @@
 <?php
 
-class MySchema extends Arion
+class MySchema extends Novel
 {
     // queries
     public $queries = array();
@@ -185,7 +185,7 @@ class MySchema extends Arion
                 $databasePaths = $db_conf['PATH'];
             }
             // GET ALL DB PATHS
-            else $databasePaths = Arion::findPathsByType("database");
+            else $databasePaths = Novel::findPathsByType("database");
 
             // MYSQL KEY HAVE AN tenant KEY?
             $multi_tenant = false;

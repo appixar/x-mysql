@@ -9,7 +9,7 @@ class database extends Mason
     {
         $argx = Mason::argx();
         //
-        //Arion::module("mysql");
+        //Novel::module("mysql");
         $schema = new MySchema();
         $schema->up($argx);
     }

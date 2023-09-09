@@ -1,5 +1,5 @@
 <?php
-class MyService
+class MyService extends Services
 {
     public $con = array();
     public $error = false;
@@ -13,7 +13,7 @@ class MyService
     public function __construct($conf = array())
     {
         global $_APP_VAULT, $_ENV;
-        if (!@$_APP_VAULT["MYSQL"]) Arion::refreshError('Mysql error', 'Mysql config is missing');
+        if (!@$_APP_VAULT["MYSQL"]) Novel::refreshError('Mysql error', 'Mysql config is missing');
 
         // Die after query errors?
         if (isset($conf['die'])) $this->die = $conf['die'];
@@ -29,14 +29,14 @@ class MyService
 
         // Connection data
         $my = @$_APP_VAULT["MYSQL"][$con_id];
-        if (!$my) Arion::refreshError('Mysql error', "Conn ID not found: $con_id");
+        if (!$my) Novel::refreshError('Mysql error', "Conn ID not found: $con_id");
 
         // Replace with env variables
         foreach ($my as $k => $v) {
             // value is between <> ?
             if (!is_array($v) and substr($v, 0, 1) === '<' and substr($v, -1) === '>') {
                 $v = substr($v, 1, -1); // remove <>
-                if (@!$_ENV[$v]) Arion::refreshError('Mysql error', "'$v' not found in .env");
+                if (@!$_ENV[$v]) Novel::refreshError('Mysql error', "'$v' not found in .env");
                 $my[$k] = $_ENV[$v];
             }
         }
@@ -61,7 +61,7 @@ class MyService
             //$this->con = new PDO($dsn, $my['USER'], $my['PASS']);
         } catch (PDOException $e) {
             //die("Error: " . $e->getMessage() . PHP_EOL);
-            Arion::refreshError('Mysql error', $e->getMessage());
+            Novel::refreshError('Mysql error', $e->getMessage());
         }
     }
     public function query($query, $variables = array())
@@ -76,11 +76,11 @@ class MyService
             foreach ($keys_find as $key) {
                 $key = explode(" ", $key)[0];
                 if (@$variables[$key]) $stmt->bindValue(":$key", $variables[$key]);
-                else Arion::refreshError('Mysql error', "Bind key not found ':$key'");
+                else Novel::refreshError('Mysql error', "Bind key not found ':$key'");
             }
         }
         if (!$stmt->execute()) {
-            if ($this->die) Arion::refreshError('Mysql error', $stmt->errorInfo()[2]);
+            if ($this->die) Novel::refreshError('Mysql error', $stmt->errorInfo()[2]);
             $this->error = $stmt->errorInfo()[2]; // 2 = text
             return false;
         }
@@ -118,7 +118,7 @@ class MyService
 
         // RUN QUERY
         if (!$stmt->execute()) {
-            if ($this->die) Arion::refreshError('Mysql error', $stmt->errorInfo()[2]);
+            if ($this->die) Novel::refreshError('Mysql error', $stmt->errorInfo()[2]);
             $this->error = $stmt->errorInfo()[2]; // 2 = text
             return false;
         }
@@ -175,7 +175,7 @@ class MyService
 
         // RUN QUERY
         if (!$stmt->execute()) {
-            if ($this->die) Arion::refreshError('Mysql error', $stmt->errorInfo()[2]);
+            if ($this->die) Novel::refreshError('Mysql error', $stmt->errorInfo()[2]);
             $this->error = $stmt->errorInfo()[2]; // 2 = text
             return false;
         }
@@ -183,7 +183,7 @@ class MyService
     }
     public static function getAllFields()
     {
-        $databasePaths = Arion::findPathsByType("database");
+        $databasePaths = Novel::findPathsByType("database");
         $fields = [];
         foreach ($databasePaths as $path) {
             if (file_exists($path) and is_dir($path)) {
@@ -212,15 +212,17 @@ class MyService
         global $_APP;
 
         // CHECK REQUIRED FIELDS
-        if (is_array($requiredFields)) $fields = $requiredFields;
-        else $fields = explode(",", $requiredFields);
-        foreach ($fields as $field) {
-            $field = trim($field);
-            if (!@$receivedData[$field]) Http::die(400, "Missing required field: $field");
+        if ($requiredFields) {
+            if (is_array($requiredFields)) $fields = $requiredFields;
+            else $fields = explode(",", $requiredFields);
+            foreach ($fields as $field) {
+                $field = trim($field);
+                if (!@$receivedData[$field]) Http::die(400, "Missing required field: $field");
+            }
         }
 
         // SANITIZE FIELDS
-        Arion::load('MyValidate');
+        Novel::load('MyValidate');
         $validatedData = $receivedData;
 
         // LOOP IN ALL DB FIELDS

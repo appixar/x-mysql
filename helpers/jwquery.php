@@ -15,7 +15,7 @@ function jwconex($i = 0)
     $jwconex[$i] = @mysqli_connect($c['HOST'], $c['USER'], $c['PASS'], $c['NAME'], $c['PORT']);
     if (mysqli_connect_error()) {
         new Debug(__FUNCTION__, mysqli_connect_error(), "error");
-        Arion::err("DB ERROR = CAN'T CONNECT.", mysqli_connect_error());
+        Novel::err("DB ERROR = CAN'T CONNECT.", mysqli_connect_error());
     } else {
         $time_elapsed_secs = number_format((microtime(true) - $start), 4);
         new Debug(__FUNCTION__, "(#$i) connected in $time_elapsed_secs s", "sql_conex");
@@ -63,7 +63,7 @@ function jwquery($query, $i = 0)
         new Debug(__FUNCTION__, "(#$i) $query", "sql_sel");
         $rs = mysqli_query($jwconex[$i], $query) or new Debug(__FUNCTION__, mysqli_error($jwconex[$i]), "error");
         if (!$rs) {
-            Arion::err("DB ERROR = BAD QUERY.", mysqli_error($jwconex[$i]) . PHP_EOL . "-" . PHP_EOL . $query);
+            Novel::err("DB ERROR = BAD QUERY.", mysqli_error($jwconex[$i]) . PHP_EOL . "-" . PHP_EOL . $query);
             #die(mysqli_error($jwconex[$i]));
         }
         $rows_aff = mysqli_affected_rows($jwconex[$i]);
@@ -118,7 +118,7 @@ function jwinsert($table_name, $array_data, $i = 0)
     $rs = mysqli_query($jwconex[$i], $qr) or new Debug(__FUNCTION__, mysqli_error($jwconex[$i]), "error");
     if (!$rs) {
         #die(mysqli_error($jwconex[$i]));
-        Arion::err("DB ERROR = BAD INSERT.", mysqli_error($jwconex[$i]) . "<p>$qr</p>");
+        Novel::err("DB ERROR = BAD INSERT.", mysqli_error($jwconex[$i]) . "<p>$qr</p>");
     }
 
     $rows_aff = mysqli_affected_rows($jwconex[$i]);

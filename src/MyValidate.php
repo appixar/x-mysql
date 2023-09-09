@@ -1,10 +1,10 @@
 <?php
-class MyValidate
+class MyValidate extends Controllers
 {
     // RETURN ERROR
     public static function error($error, $data = [])
     {
-        if (Arion::isAPI()) Http::die(400, $error);
+        if (Novel::isAPI()) Http::die(400, $error);
         else return ['error' => $error, 'data' => $data];
     }
     //-------------------------------------
