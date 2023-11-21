@@ -75,8 +75,10 @@ class MyService extends Services
             array_values($keys_find);
             foreach ($keys_find as $key) {
                 $key = explode(" ", $key)[0];
-                if (@$variables[$key]) $stmt->bindValue(":$key", $variables[$key]);
-                else Novel::refreshError('Mysql error', "Bind key not found ':$key'");
+                if (!is_numeric($key) and isAlphanumericOrUnderscore($key)) { // date dots bugfix
+                    if (@$variables[$key]) $stmt->bindValue(":$key", $variables[$key]);
+                    else Novel::refreshError('Mysql error', "Bind key not found ':$key'");
+                }
             }
         }
         if (!$stmt->execute()) {
@@ -233,6 +235,7 @@ class MyService extends Services
                 $validatedData[$fieldName] = $fieldValue;
                 continue;
             }
+            if (!$fieldValue) continue;
             $params = explode(" ", $fields[$fieldName]);
             foreach ($params as $param) {
                 $methodName = "validate_$param";
