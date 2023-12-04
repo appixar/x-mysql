@@ -224,6 +224,7 @@ class MyService extends Services
         }
 
         // SANITIZE FIELDS
+        if (!$receivedData) return true;
         Novel::load('MyValidate');
         $validatedData = $receivedData;
 

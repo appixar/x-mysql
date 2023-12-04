@@ -1,6 +1,6 @@
 <?php
 
-class MySchema extends Novel
+class MyBuilder extends Novel
 {
     // queries
     public $queries = array();

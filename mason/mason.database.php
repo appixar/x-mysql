@@ -10,7 +10,7 @@ class database extends Mason
         $argx = Mason::argx();
         //
         //Novel::module("mysql");
-        $schema = new MySchema();
+        $schema = new MyBuilder();
         $schema->up($argx);
     }
     public function dump()
