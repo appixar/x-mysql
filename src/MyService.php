@@ -55,8 +55,8 @@ class MyService extends Services
         // Connect
         try {
             //$dsn = "mysql:host={$my['HOST']};dbname={$my['NAME']};port={$my['PORT']};charset=utf8";//utf8mb4
-            $dsn = "mysql:host={$my['HOST']};{$dbName}port={$my['PORT']};charset=utf8"; //utf8mb4
-            $this->con = new PDO($dsn, $my['USER'], $my['PASS'], array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8")); //utf8mb4
+            $dsn = "mysql:host={$my['HOST']};{$dbName}port={$my['PORT']};charset=utf8mb4"; //utf8mb4
+            $this->con = new PDO($dsn, $my['USER'], $my['PASS'], array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4")); //utf8mb4
             //$dsn = "mysql:host={$my['HOST']};dbname={$my['NAME']};port={$my['PORT']}";
             //$this->con = new PDO($dsn, $my['USER'], $my['PASS']);
         } catch (PDOException $e) {
