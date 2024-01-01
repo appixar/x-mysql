@@ -1,6 +1,53 @@
 <?php
 class MyValidate extends Controllers
 {
+    // VALIDATE INPUT FIELDS
+    public static function sanitize($receivedData, $requiredFields = false)
+    {
+        global $_APP;
+
+        // CHECK REQUIRED FIELDS
+        if ($requiredFields) {
+            if (is_array($requiredFields)) $fields = $requiredFields;
+            else $fields = explode(",", $requiredFields);
+            foreach ($fields as $field) {
+                $field = trim($field);
+                if (!@$receivedData[$field]) Http::die(400, "Missing required field: $field");
+            }
+        }
+
+        // SANITIZE FIELDS
+        if (!$receivedData) return true;
+        Novel::load('MyValidate');
+        $validatedData = $receivedData;
+
+        // LOOP IN ALL DB FIELDS
+        $fields = MyService::getAllFields();
+        foreach ($receivedData as $fieldName => $fieldValue) {
+            // IS NOT DB FIELD
+            if (!@$fields[$fieldName]) {
+                $validatedData[$fieldName] = $fieldValue;
+                continue;
+            }
+            if (!$fieldValue) continue;
+            $params = explode(" ", $fields[$fieldName]);
+            foreach ($params as $param) {
+                $methodName = "validate_$param";
+                if (method_exists('MyValidate', $methodName)) {
+                    //echo "$methodName=> $fieldName=>" . MyValidate::$methodName($fieldValue) . "<br/>";
+                    $validatedData[$fieldName] = MyValidate::$methodName($fieldValue);
+                } elseif (function_exists($param)) {
+                    $validatedData[$fieldName] = $param($fieldValue);
+                }
+                // validate error?
+                if (@!empty($validatedData[$fieldName]['error'])) {
+                    $validatedData['error'] = @$validatedData[$fieldName]['error'];
+                    $validatedData['errors'][$fieldName] = @$validatedData[$fieldName]['error'];
+                }
+            }
+        }
+        return $validatedData;
+    }
     // RETURN ERROR
     public static function fail($error, $data = [])
     {

@@ -2,8 +2,10 @@
 class MyService extends Services
 {
     public $con = array();
+    public $conf = [];
     public $error = false;
     public $die = true; // die after query errors
+    private static $instances = [];
     /*
     $conf = array(
         'die' => true,
@@ -12,8 +14,15 @@ class MyService extends Services
     */
     public function __construct($conf = array())
     {
+        $this->conf = $conf;
+    }
+    public function connect()
+    {
         global $_APP_VAULT, $_ENV;
         if (!@$_APP_VAULT["MYSQL"]) Novel::refreshError('Mysql error', 'Mysql config is missing');
+
+        // Get conf
+        $conf = $this->conf;
 
         // Die after query errors?
         if (isset($conf['die'])) $this->die = $conf['die'];
@@ -52,20 +61,29 @@ class MyService extends Services
         $dbName = '';
         if (@!$conf['ignore-database']) $dbName = "dbname={$my['NAME']};";
 
+        // Identificador único para a configuração de conexão
+        $uniqueId = md5(serialize($my));
+
+        // Verifica se já existe uma instância com a mesma configuração
+        if (isset(self::$instances[$uniqueId])) {
+            return self::$instances[$uniqueId];
+        }
+
         // Connect
         try {
-            //$dsn = "mysql:host={$my['HOST']};dbname={$my['NAME']};port={$my['PORT']};charset=utf8";//utf8mb4
-            $dsn = "mysql:host={$my['HOST']};{$dbName}port={$my['PORT']};charset=utf8mb4"; //utf8mb4
-            $this->con = new PDO($dsn, $my['USER'], $my['PASS'], array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4")); //utf8mb4
-            //$dsn = "mysql:host={$my['HOST']};dbname={$my['NAME']};port={$my['PORT']}";
-            //$this->con = new PDO($dsn, $my['USER'], $my['PASS']);
+            // Cria a nova instância da conexão PDO
+            $dsn = "mysql:host={$my['HOST']};{$dbName}port={$my['PORT']};charset=utf8mb4";
+            $con = new PDO($dsn, $my['USER'], $my['PASS'], array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"));
+            // Armazena a instância na propriedade estática
+            self::$instances[$uniqueId] = $con;
+            return $con;
         } catch (PDOException $e) {
-            //die("Error: " . $e->getMessage() . PHP_EOL);
             Novel::refreshError('Mysql error', $e->getMessage());
         }
     }
     public function query($query, $variables = array())
     {
+        if (!$this->con) $this->con = $this->connect();
         $stmt = $this->con->prepare($query);
 
         if ($variables) {
@@ -91,6 +109,9 @@ class MyService extends Services
     }
     public function insert($table, $data = array())
     {
+        // CONNECT
+        if (!$this->con) $this->con = $this->connect();
+
         // VARIABLES DO BIND
         $binds = array();
 
@@ -129,6 +150,9 @@ class MyService extends Services
     }
     public function update($table, $data = array(), $condition = array())
     {
+        // CONNECT
+        if (!$this->con) $this->con = $this->connect();
+
         // VARIABLES DO BIND
         $binds = array();
 
