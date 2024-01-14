@@ -160,8 +160,8 @@ class MyService extends Services
         $comma = $values = $and = $where = $and = "";
         foreach ($data as $k => $v) {
             // fix data
-            if ($v == "NULL" or $v == "null") $v = "NULL";
-            elseif ($v == "") $v = "NULL";
+            if ($v === "NULL" or $v === "null") $v = "NULL";
+            elseif ($v === "") $v = "NULL";
             else {
                 $binds[$k] = $v;
                 $v = ":$k";
