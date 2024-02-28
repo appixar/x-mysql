@@ -161,6 +161,7 @@ class MyService extends Services
         foreach ($data as $k => $v) {
             // fix data
             if ($v === "NULL" or $v === "null") $v = "NULL";
+            elseif (is_numeric($v)) $v = "$v"; // blank
             elseif ($v === "") $v = "NULL";
             else {
                 $binds[$k] = $v;
