@@ -489,6 +489,7 @@ class MyBuilder extends Xplend
             $type = explode(" ", $v)[0];
             $type = explode("/", $type)[0];
             $type_real = explode("(", @$this->schema_default[$type]['Type'])[0];
+            if (!$type_real) $type_real = $type;
 
             // type is null
             if (!$type) {
