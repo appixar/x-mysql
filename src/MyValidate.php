@@ -18,7 +18,7 @@ class MyValidate extends Controllers
 
         // SANITIZE FIELDS
         if (!$receivedData) return true;
-        Novel::load('MyValidate');
+        Xplend::load('MyValidate');
         $validatedData = $receivedData;
 
         // LOOP IN ALL DB FIELDS
@@ -51,7 +51,7 @@ class MyValidate extends Controllers
     // RETURN ERROR
     public static function fail($error, $data = [])
     {
-        if (Novel::isAPI()) Http::die(400, $error);
+        if (Xplend::isAPI()) Http::die(400, $error);
         else return ['error' => $error, 'data' => $data];
     }
     //-------------------------------------

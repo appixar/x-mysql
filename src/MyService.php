@@ -19,7 +19,7 @@ class MyService extends Services
     public function connect()
     {
         global $_APP_VAULT, $_ENV;
-        if (!@$_APP_VAULT["MYSQL"]) Novel::refreshError('Mysql error', 'Mysql config is missing');
+        if (!@$_APP_VAULT["MYSQL"]) Xplend::refreshError('Mysql error', 'Mysql config is missing');
 
         // Get conf
         $conf = $this->conf;
@@ -38,14 +38,14 @@ class MyService extends Services
 
         // Connection data
         $my = @$_APP_VAULT["MYSQL"][$con_id];
-        if (!$my) Novel::refreshError('Mysql error', "Conn ID not found: $con_id");
+        if (!$my) Xplend::refreshError('Mysql error', "Conn ID not found: $con_id");
 
         // Replace with env variables
         foreach ($my as $k => $v) {
             // value is between <> ?
             if (!is_array($v) and substr($v, 0, 1) === '<' and substr($v, -1) === '>') {
                 $v = substr($v, 1, -1); // remove <>
-                if (@!$_ENV[$v]) Novel::refreshError('Mysql error', "'$v' not found in .env");
+                if (@!$_ENV[$v]) Xplend::refreshError('Mysql error', "'$v' not found in .env");
                 $my[$k] = $_ENV[$v];
             }
         }
@@ -78,7 +78,7 @@ class MyService extends Services
             self::$instances[$uniqueId] = $con;
             return $con;
         } catch (PDOException $e) {
-            Novel::refreshError('Mysql error', $e->getMessage());
+            Xplend::refreshError('Mysql error', $e->getMessage());
         }
     }
     public function query($query, $variables = array())
@@ -95,12 +95,12 @@ class MyService extends Services
                 $key = explode(" ", $key)[0];
                 if (!is_numeric($key) and isAlphanumericOrUnderscore($key)) { // date dots bugfix
                     if (@$variables[$key]) $stmt->bindValue(":$key", $variables[$key]);
-                    else Novel::refreshError('Mysql error', "Bind key not found ':$key'");
+                    else Xplend::refreshError('Mysql error', "Bind key not found ':$key'");
                 }
             }
         }
         if (!$stmt->execute()) {
-            if ($this->die) Novel::refreshError('Mysql error', $stmt->errorInfo()[2]);
+            if ($this->die) Xplend::refreshError('Mysql error', $stmt->errorInfo()[2]);
             $this->error = $stmt->errorInfo()[2]; // 2 = text
             return false;
         }
@@ -141,7 +141,7 @@ class MyService extends Services
 
         // RUN QUERY
         if (!$stmt->execute()) {
-            if ($this->die) Novel::refreshError('Mysql error', $stmt->errorInfo()[2]);
+            if ($this->die) Xplend::refreshError('Mysql error', $stmt->errorInfo()[2]);
             $this->error = $stmt->errorInfo()[2]; // 2 = text
             return false;
         }
@@ -202,7 +202,7 @@ class MyService extends Services
 
         // RUN QUERY
         if (!$stmt->execute()) {
-            if ($this->die) Novel::refreshError('Mysql error', $stmt->errorInfo()[2]);
+            if ($this->die) Xplend::refreshError('Mysql error', $stmt->errorInfo()[2]);
             $this->error = $stmt->errorInfo()[2]; // 2 = text
             return false;
         }
@@ -210,7 +210,7 @@ class MyService extends Services
     }
     public static function getAllFields()
     {
-        $databasePaths = Novel::findPathsByType("database");
+        $databasePaths = Xplend::findPathsByType("database");
         $fields = [];
         foreach ($databasePaths as $path) {
             if (file_exists($path) and is_dir($path)) {
@@ -250,7 +250,7 @@ class MyService extends Services
 
         // SANITIZE FIELDS
         if (!$receivedData) return true;
-        Novel::load('MyValidate');
+        Xplend::load('MyValidate');
         $validatedData = $receivedData;
 
         // LOOP IN ALL DB FIELDS

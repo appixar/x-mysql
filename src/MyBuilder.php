@@ -1,6 +1,6 @@
 <?php
 
-class MyBuilder extends Novel
+class MyBuilder extends Xplend
 {
     // queries
     public $queries = array();
@@ -185,7 +185,7 @@ class MyBuilder extends Novel
                 $databasePaths = $db_conf['PATH'];
             }
             // GET ALL DB PATHS
-            else $databasePaths = Novel::findPathsByType("database");
+            else $databasePaths = Xplend::findPathsByType("database");
 
             // MYSQL KEY HAVE AN tenant KEY?
             $multi_tenant = false;
