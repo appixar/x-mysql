@@ -488,8 +488,16 @@ class MyBuilder extends Xplend
             // field type
             $type = explode(" ", $v)[0];
             $type = explode("/", $type)[0];
-            $type_real = explode("(", @$this->schema_default[$type]['Type'])[0];
-            if (!$type_real) $type_real = $type;
+            $type_real = @explode("(", @$this->schema_default[$type]['Type'])[0];
+            if (!$type_real) {
+                $type_real = $type;
+                $this->schema_default[$type_real] = [
+                    'Type' => '',
+                    'Null' => '',
+                    'Default' => '',
+                    'Extra' => ''
+                ];
+            }
 
             // type is null
             if (!$type) {
@@ -654,7 +662,7 @@ class MyBuilder extends Xplend
             // FIELD PARAMETERS
             $type = strtoupper(@$v['Type']);
             $null = ($v['Null'] == 'NO') ? "NOT NULL" : "NULL DEFAULT NULL";
-            $extra = strtoupper(@$v['Extra']);
+            $extra = @strtoupper(@$v['Extra']);
 
             $query .= $_comma . "`$k` $type $null $extra";
 
