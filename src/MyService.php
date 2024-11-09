@@ -2,30 +2,22 @@
 class MyService extends Services
 {
     public $con = array();
-    public $conf = [];
-    public $error = false;
-    public $die = true; // die after query errors
+    public $conf = [
+        "returnError" => 'exception' // after query errors: die, exception or false(return false)
+    ];
+    public $error = ""; // error msg
     private static $instances = [];
-    /*
-    $conf = array(
-        'die' => true,
-        'id' => 0, // $_APP_VAULT[MYSQL][0]
-    );
-    */
     public function __construct($conf = array())
     {
-        $this->conf = $conf;
+        foreach ($conf as $k => $v) $this->conf[$k] = $v;
     }
     public function connect()
     {
         global $_APP_VAULT, $_ENV;
-        if (!@$_APP_VAULT["MYSQL"]) Xplend::refreshError('Mysql error', 'Mysql config is missing');
+        if (!@$_APP_VAULT["MYSQL"]) $this->returnError('Mysql config is missing');
 
         // Get conf
         $conf = $this->conf;
-
-        // Die after query errors?
-        if (isset($conf['die'])) $this->die = $conf['die'];
 
         // Default connection ID = first
         $con_id = @$conf['db_key'];
@@ -38,7 +30,7 @@ class MyService extends Services
 
         // Connection data
         $my = @$_APP_VAULT["MYSQL"][$con_id];
-        if (!$my) Xplend::refreshError('Mysql error', "Conn ID not found: $con_id");
+        if (!$my) return $this->returnError("Conn ID not found: $con_id");
 
         // Replace with env variables
         foreach ($my as $k => $v) {
@@ -81,6 +73,13 @@ class MyService extends Services
             Xplend::refreshError('Mysql error', $e->getMessage());
         }
     }
+    public function returnError($msg)
+    {
+        $this->error = $msg;
+        if ($this->conf['returnError'] == 'die') Xplend::refreshError('Mysql error', $msg);
+        elseif ($this->conf['returnError'] == 'exception') throw new Exception($msg);
+        else return false;
+    }
     public function query($query, $variables = array())
     {
         if (!$this->con) $this->con = $this->connect();
@@ -99,11 +98,7 @@ class MyService extends Services
                 }
             }
         }
-        if (!$stmt->execute()) {
-            if ($this->die) Xplend::refreshError('Mysql error', $stmt->errorInfo()[2]);
-            $this->error = $stmt->errorInfo()[2]; // 2 = text
-            return false;
-        }
+        if (!$stmt->execute()) return $this->returnError($stmt->errorInfo()[2]);
         $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
         return $res;
     }
@@ -140,11 +135,7 @@ class MyService extends Services
         foreach ($binds as $k => $v) $stmt->bindValue(":$k", $v);
 
         // RUN QUERY
-        if (!$stmt->execute()) {
-            if ($this->die) Xplend::refreshError('Mysql error', $stmt->errorInfo()[2]);
-            $this->error = $stmt->errorInfo()[2]; // 2 = text
-            return false;
-        }
+        if (!$stmt->execute()) return $this->returnError($stmt->errorInfo()[2]);
         $id = $this->con->lastInsertId();
         return $id;
     }
@@ -201,11 +192,7 @@ class MyService extends Services
         foreach ($binds as $k => $v) $stmt->bindValue(":$k", $v);
 
         // RUN QUERY
-        if (!$stmt->execute()) {
-            if ($this->die) Xplend::refreshError('Mysql error', $stmt->errorInfo()[2]);
-            $this->error = $stmt->errorInfo()[2]; // 2 = text
-            return false;
-        }
+        if (!$stmt->execute()) return $this->returnError($stmt->errorInfo()[2]);
         return $stmt->rowCount();
     }
     public static function getAllFields()
