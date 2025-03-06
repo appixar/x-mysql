@@ -37,7 +37,7 @@ class MyService extends Services
             // value is between <> ?
             if (!is_array($v) and substr($v, 0, 1) === '<' and substr($v, -1) === '>') {
                 $v = substr($v, 1, -1); // remove <>
-                if (@!$_ENV[$v]) Xplend::refreshError('Mysql error', "'$v' not found in .env");
+                if (@!$_ENV[$v]) Xplend::err('Mysql error', "'$v' not found in .env");
                 $my[$k] = $_ENV[$v];
             }
         }
@@ -70,13 +70,13 @@ class MyService extends Services
             self::$instances[$uniqueId] = $con;
             return $con;
         } catch (PDOException $e) {
-            Xplend::refreshError('Mysql error', $e->getMessage());
+            Xplend::err('Mysql error', $e->getMessage());
         }
     }
     public function returnError($msg)
     {
         $this->error = $msg;
-        if ($this->conf['returnError'] == 'die') Xplend::refreshError('Mysql error', $msg);
+        if ($this->conf['returnError'] == 'die') Xplend::err('Mysql error', $msg);
         elseif ($this->conf['returnError'] == 'exception') throw new Exception($msg);
         else return false;
     }
@@ -94,7 +94,7 @@ class MyService extends Services
                 $key = explode(" ", $key)[0];
                 if (!is_numeric($key) and isAlphanumericOrUnderscore($key)) { // date dots bugfix
                     if (@$variables[$key]) $stmt->bindValue(":$key", $variables[$key]);
-                    else Xplend::refreshError('Mysql error', "Bind key not found ':$key'");
+                    else Xplend::err('Mysql error', "Bind key not found ':$key'");
                 }
             }
         }
