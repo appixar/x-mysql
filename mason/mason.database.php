@@ -1,5 +1,5 @@
 <?php
-class database extends Mason
+class mysql extends Mason
 {
     public function __construct()
     {
