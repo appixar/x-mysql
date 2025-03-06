@@ -582,7 +582,26 @@ class MyBuilder extends Xplend
                     //print_r($v);
                 }
             }
-
+            // OTHER CHANGES
+            $type = strtoupper(@$v['Type']);
+            $null = ($v['Null'] == 'NO') ? "NOT NULL" : "NULL DEFAULT NULL";
+            $extra = strtoupper(@$v['Extra']);
+            // CREATE FIELD
+            if (!@$field_curr[$k]) {
+                $query = "ALTER TABLE `$table` ADD `$k` $type $null $extra $after;";
+                $this->queries[] = $query;
+                $this->queries_mini[] = false;
+                $this->queries_color[] = 'green';
+                if (!$this->mute) Mason::say("→ $query", 'green');
+            }
+            // UPDATE FIELD
+            else {
+                $query = "ALTER TABLE `$table` CHANGE `$k` `$k` $type $null $extra $after;";
+                $this->queries[] = $query;
+                $this->queries_mini[] = false;
+                $this->queries_color[] = 'cyan';
+                if (!$this->mute) Mason::say("→ $query", 'cyan');
+            }
             // ADD PRIMARY KEY
             if (@$v['Key'] === 'PRI' and @$diff['Key'] === 'PRI') {
                 $query = "ALTER TABLE `$table` ADD PRIMARY KEY(`$k`);";
@@ -613,26 +632,7 @@ class MyBuilder extends Xplend
                 //$my->query($query);
                 $this->actions++;
             }
-            // OTHER CHANGES
-            $type = strtoupper(@$v['Type']);
-            $null = ($v['Null'] == 'NO') ? "NOT NULL" : "NULL DEFAULT NULL";
-            $extra = strtoupper(@$v['Extra']);
-            // CREATE FIELD
-            if (!@$field_curr[$k]) {
-                $query = "ALTER TABLE `$table` ADD `$k` $type $null $extra $after;";
-                $this->queries[] = $query;
-                $this->queries_mini[] = false;
-                $this->queries_color[] = 'green';
-                if (!$this->mute) Mason::say("→ $query", 'green');
-            }
-            // UPDATE FIELD
-            else {
-                $query = "ALTER TABLE `$table` CHANGE `$k` `$k` $type $null $extra $after;";
-                $this->queries[] = $query;
-                $this->queries_mini[] = false;
-                $this->queries_color[] = 'cyan';
-                if (!$this->mute) Mason::say("→ $query", 'cyan');
-            }
+
             //$my->query($query);
             $this->actions++;
             next:
