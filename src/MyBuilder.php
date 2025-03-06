@@ -157,8 +157,8 @@ class MyBuilder extends Xplend
         //prex($argx);
 
         if (!@is_array($_APP['MYSQL'])) {
-            Mason::say("Ops! config is missing.", false, "red");
-            Mason::say("Please, verify: modules/mysql/config/mysql.yml", false, "red");
+            Mason::say("Ops! config is missing.", "red");
+            Mason::say("Please, verify: modules/mysql/config/mysql.yml", "red");
             exit;
         }
 
@@ -174,7 +174,7 @@ class MyBuilder extends Xplend
                     continue;
                 }
             }
-            Mason::say("► MySQL '$db_id' ...", true, 'cyan');
+            Mason::header("► MySQL '$db_id' ...", 'cyan');
 
             // GET SPECIFIC PATH
             if (@$db_conf['PATH']) {
@@ -217,11 +217,11 @@ class MyBuilder extends Xplend
                 //-------------------------------------------
                 else {
                     if (!@isset($db_conf['TENANT_KEYS']['DBKEY']) or !@$db_conf['TENANT_KEYS']['TABLE'] or !@$db_conf['TENANT_KEYS']['FIELD'] or !@$db_conf['TENANT_KEYS']['WHERE']) {
-                        Mason::say("✗ Missing wildcard parameters", false, 'red');
+                        Mason::say("✗ Missing wildcard parameters", 'red');
                         goto next_db;
                     }
                     if (!@$_APP['MYSQL'][$db_conf['TENANT_KEYS']['DBKEY']]) {
-                        Mason::say("✗ MySQL '{$db_conf['TENANT_KEYS']['DBKEY']}' not found. Can't build wildcard loop.", false, 'red');
+                        Mason::say("✗ MySQL '{$db_conf['TENANT_KEYS']['DBKEY']}' not found. Can't build wildcard loop.", 'red');
                         goto next_db;
                     }
                     // CREATE WILDCARD LOOP
@@ -268,8 +268,8 @@ class MyBuilder extends Xplend
                     }
                 }
                 if (!$tenant_found) {
-                    Mason::say("- Searching '{$this->select_tenant}' in " . count($tenant_loop) . " tenants...", false);
-                    Mason::say("- Not Found!", false);
+                    Mason::say("- Searching '{$this->select_tenant}' in " . count($tenant_loop) . " tenants...");
+                    Mason::say("- Not Found!");
                     Mason::say("");
                     goto next_db;
                 }
@@ -286,8 +286,8 @@ class MyBuilder extends Xplend
                     }
                 }
                 if (!$db_found) {
-                    Mason::say("- Searching database '{$this->select_database}' in " . count($tenant_loop) . " tenants...", false);
-                    Mason::say("- Not Found!", false);
+                    Mason::say("- Searching database '{$this->select_database}' in " . count($tenant_loop) . " tenants...");
+                    Mason::say("- Not Found!");
                     Mason::say("");
                     goto next_db;
                 }
@@ -314,7 +314,7 @@ class MyBuilder extends Xplend
                 if ($multi_tenant) {
                     $tenant_key = $db['TENANT_KEY'];
                     $my_conf['tenant_key'] = $tenant_key;
-                    Mason::say("→ Start $db_id/$tenant_key", true, 'header');
+                    Mason::header("→ Start $db_id/$tenant_key", 'blue');
                 }
                 $my = new my($my_conf);
 
@@ -350,7 +350,7 @@ class MyBuilder extends Xplend
                             if (is_file($fp)) {
 
                                 if (!$this->mute) Mason::say("");
-                                if (!$this->mute) Mason::say("⍐ Processing: " . realpath($fp), false, 'magenta');
+                                if (!$this->mute) Mason::say("⍐ Processing: " . realpath($fp), 'magenta');
 
                                 // CHECK YML FILE INTEGRITY
                                 //if (!$this->checkFileIntegrity($fp)) goto nextFile;
@@ -360,7 +360,7 @@ class MyBuilder extends Xplend
 
                                 // MULTIPLE TABLES ON SINGLE FILE?
                                 if (!is_array($data)) {
-                                    if (!$this->mute) Mason::say("* Invalid file format. Ignored.", false, 'yellow');
+                                    if (!$this->mute) Mason::say("* Invalid file format. Ignored.", 'yellow');
                                     goto nextFile;
                                 }
 
@@ -376,7 +376,7 @@ class MyBuilder extends Xplend
 
                                     // reforce bugfix (old yml format)
                                     if (@$table_cols[0]) {
-                                        if (!$this->mute) Mason::say("* Invalid file format. Ignored.", false, 'yellow');
+                                        if (!$this->mute) Mason::say("* Invalid file format. Ignored.", 'yellow');
                                         goto nextFile;
                                     }
 
@@ -428,7 +428,7 @@ class MyBuilder extends Xplend
                     for ($z = 0; $z < count($this->queries); $z++) {
                         if ($this->queries_mini[$z]) $qr = $this->queries_mini[$z];
                         else $qr = $this->queries[$z];
-                        Mason::say("→ $qr", false, $this->queries_color[$z]);
+                        Mason::say("→ $qr", $this->queries_color[$z]);
                     }
                     echo PHP_EOL;
                     echo "Are you sure you want to do this? ☝" . PHP_EOL;
@@ -450,13 +450,13 @@ class MyBuilder extends Xplend
                         $my->query($this->queries[$z]);
                     }
                 } // CONFIRM 
-                Mason::say("❤ Finished $db_id/$tenant_key. Changes: {$this->actions}", true, 'header');
+                Mason::header("❤ Finished $db_id/$tenant_key. Changes: {$this->actions}", 'blue');
                 next_tenant:
             }
             next_db:
         }
         if ($this->create_database_count > 0) {
-            Mason::say("Possible new databases: {$this->create_database_count}. Reloading...", true, 'cyan');
+            Mason::header("Possible new databases: {$this->create_database_count}. Reloading...", 'cyan');
             $this->create_database_count = 0;
             $this->up(['--mute' => true]);
         }
@@ -501,7 +501,7 @@ class MyBuilder extends Xplend
 
             // type is null
             if (!$type) {
-                Mason::say("* Ignoring field $k: type is null.", false, "yellow");
+                Mason::say("* Ignoring field $k: type is null.", "yellow");
                 continue;
             }
             // field length
@@ -544,7 +544,7 @@ class MyBuilder extends Xplend
     //-------------------------------------------------------
     private function updateTable($table, $field, $field_curr, $my)
     {
-        if (!$this->mute) Mason::say("∴ $table", true, 'blue');
+        if (!$this->mute) Mason::header("∴ $table", 'blue');
         $query = '';
 
         // REMOVE FIELDS
@@ -554,7 +554,7 @@ class MyBuilder extends Xplend
                 $this->queries[] = $query;
                 $this->queries_mini[] = false;
                 $this->queries_color[] = 'yellow';
-                if (!$this->mute) Mason::say("→ $query", false, 'yellow');
+                if (!$this->mute) Mason::say("→ $query", 'yellow');
                 //$my->query($query);
                 $this->actions++;
             }
@@ -589,7 +589,7 @@ class MyBuilder extends Xplend
                 $this->queries[] = $query;
                 $this->queries_mini[] = false;
                 $this->queries_color[] = 'cyan';
-                if (!$this->mute) Mason::say("→ $query", false, 'cyan');
+                if (!$this->mute) Mason::say("→ $query", 'cyan');
                 //$my->query($query);
                 $this->actions++;
             }
@@ -599,7 +599,7 @@ class MyBuilder extends Xplend
                 $this->queries[] = $query;
                 $this->queries_mini[] = false;
                 $this->queries_color[] = 'cyan';
-                if (!$this->mute) Mason::say("→ $query", false, 'cyan');
+                if (!$this->mute) Mason::say("→ $query", 'cyan');
                 //$my->query($query);
                 $this->actions++;
             }
@@ -609,7 +609,7 @@ class MyBuilder extends Xplend
                 $this->queries[] = $query;
                 $this->queries_mini[] = false;
                 $this->queries_color[] = 'cyan';
-                if (!$this->mute) Mason::say("→ $query", false, 'cyan');
+                if (!$this->mute) Mason::say("→ $query", 'cyan');
                 //$my->query($query);
                 $this->actions++;
             }
@@ -623,7 +623,7 @@ class MyBuilder extends Xplend
                 $this->queries[] = $query;
                 $this->queries_mini[] = false;
                 $this->queries_color[] = 'green';
-                if (!$this->mute) Mason::say("→ $query", false, 'green');
+                if (!$this->mute) Mason::say("→ $query", 'green');
             }
             // UPDATE FIELD
             else {
@@ -631,7 +631,7 @@ class MyBuilder extends Xplend
                 $this->queries[] = $query;
                 $this->queries_mini[] = false;
                 $this->queries_color[] = 'cyan';
-                if (!$this->mute) Mason::say("→ $query", false, 'cyan');
+                if (!$this->mute) Mason::say("→ $query", 'cyan');
             }
             //$my->query($query);
             $this->actions++;
@@ -650,7 +650,7 @@ class MyBuilder extends Xplend
     private function createTable($table, $field, $my)
     {
         global $_APP;
-        if (!$this->mute) Mason::say("∴ $table", true, 'blue');
+        if (!$this->mute) Mason::header("∴ $table", 'blue');
         $_comma = '';
         //
         $query = "";
@@ -679,7 +679,7 @@ class MyBuilder extends Xplend
         }
         $query .= PHP_EOL . ")";
         $query .= PHP_EOL . "ENGINE = InnoDB;";
-        if (!$this->mute) Mason::say("→ $query", false, 'green');
+        if (!$this->mute) Mason::say("→ $query", 'green');
         //$my->query($query);
         $this->queries[] = $query;
         $this->queries_mini[] = "CREATE TABLE `$table` ...";
@@ -692,9 +692,9 @@ class MyBuilder extends Xplend
     private function deleteTable($table, $my)
     {
         global $_APP;
-        if (!$this->mute) Mason::say("∴ $table", true, 'blue');
+        if (!$this->mute) Mason::header("∴ $table", 'blue');
         $query = "DROP TABLE $table";
-        if (!$this->mute) Mason::say("→ $query", false, 'yellow');
+        if (!$this->mute) Mason::say("→ $query", 'yellow');
         //$my->query($query);
         $this->queries[] = $query;
         $this->queries_mini[] = false;
@@ -712,6 +712,6 @@ class MyBuilder extends Xplend
         $this->queries_color[] = 'green';
         $this->actions++;
         $this->create_database_count++;
-        if (!$this->mute) Mason::say("→ $query", false, 'green');
+        if (!$this->mute) Mason::say("→ $query", 'green');
     }
 }
